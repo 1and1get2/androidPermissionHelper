@@ -1,10 +1,14 @@
 package com.derek.permissionhelperdemo;
 
 import android.Manifest;
+import android.app.Activity;
+import android.content.DialogInterface;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.util.SimpleArrayMap;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.AppCompatButton;
 import android.support.v7.widget.Toolbar;
@@ -15,11 +19,14 @@ import android.view.View;
 import android.widget.LinearLayout;
 
 import com.derek.permissionhelper.PermissionHelper;
+import com.derek.permissionhelper.PermissionHelper.RLog;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
-public class PermissionHelperDemo extends AppCompatActivity implements ActivityCompat.OnRequestPermissionsResultCallback, PermissionHelper.RequestPermissionsActivity{
+public class PermissionHelperDemo extends AppCompatActivity implements ActivityCompat.OnRequestPermissionsResultCallback, PermissionHelper.RequestPermissionsActivity {
     private static final String TAG = "PermissionHelperDemo";
     private LinearLayout rootLayout;
 
@@ -73,7 +80,38 @@ public class PermissionHelperDemo extends AppCompatActivity implements ActivityC
                             PermissionHelper.Permissions.newSubPermissions(Manifest.permission.CALL_PHONE, false),
                             PermissionHelper.Permissions.newSubPermissions(Manifest.permission.BODY_SENSORS, false),
                             PermissionHelper.Permissions.newSubPermissions(Manifest.permission.READ_SMS, false))
-            );
+            ).setPermissionResultCallBack(new PermissionHelper.PermissionResultCallBack() {
+                @Override
+                public void onUpdate(SimpleArrayMap result) {
+                    PermissionHelper.RLog.i(TAG, "onUpdate:", result.size());
+                }
+
+                @Override
+                public void onFinalResult(SimpleArrayMap result) {
+                    PermissionHelper.RLog.i(TAG, "onFinalResult:", result.size());
+                }
+            }).setPermissionShowRationalCallBack(new PermissionHelper.PermissionShowRationalCallBack() {
+                        @Override
+                        public void onShowRational(Activity activity, String rationaleTitle, String rationaleMessage,
+                                                   final PermissionHelper.PostShowRationalCallBack postShowRationalCallBack) {
+                            new AlertDialog.Builder(activity)
+                                    .setTitle(rationaleTitle)
+                                    .setMessage(rationaleMessage)
+                                    .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+                                        public void onClick(DialogInterface dialog, int which) {
+                                            RLog.i(TAG, "INLINE - YES");
+                                            postShowRationalCallBack.requestPermission(true);
+                                        }
+                                    })
+                                    .setNegativeButton(android.R.string.no, new DialogInterface.OnClickListener() {
+                                        public void onClick(DialogInterface dialog, int which) {
+                                            RLog.i(TAG, "INLINE - NO");
+                                        }
+                                    })
+                                    .setIcon(android.R.drawable.ic_menu_help)
+                                    .show();
+                        }
+            });
         }
     };
 
@@ -101,19 +139,27 @@ public class PermissionHelperDemo extends AppCompatActivity implements ActivityC
 
 
     /* Permission */
-    private List<ActivityCompat.OnRequestPermissionsResultCallback> onRequestPermissionsResultCallbackList;
+    private List<ActivityCompat.OnRequestPermissionsResultCallback> onRequestPermissionsResultCallbackList = new ArrayList<>();
+
+    private final Lock lock = new ReentrantLock();
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        for (ActivityCompat.OnRequestPermissionsResultCallback callback : onRequestPermissionsResultCallbackList) {
-            if (callback != null) callback.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        synchronized (lock) {
+            for (ActivityCompat.OnRequestPermissionsResultCallback callback : onRequestPermissionsResultCallbackList) {
+                if (callback != null) callback.onRequestPermissionsResult(requestCode, permissions, grantResults);
+            }
         }
+        //PermissionHelper.cancelAll();
     }
     public void registerOnRequestPermissionsResultCallback(ActivityCompat.OnRequestPermissionsResultCallback callback) {
-        if (onRequestPermissionsResultCallbackList == null) onRequestPermissionsResultCallbackList = new ArrayList<>();
-        onRequestPermissionsResultCallbackList.add(callback);
+        synchronized (lock) {onRequestPermissionsResultCallbackList.add(callback);}
     }
     public boolean removeOnRequestPermissionsResultCallback(ActivityCompat.OnRequestPermissionsResultCallback callback) {
-        return onRequestPermissionsResultCallbackList.remove(callback);
+        boolean removed;
+        synchronized (lock) {
+            removed = onRequestPermissionsResultCallbackList.remove(callback);
+        }
+        return removed;
     }
 }
