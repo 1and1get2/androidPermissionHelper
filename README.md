@@ -75,3 +75,5 @@ private View.OnClickListener onClickListener = new View.OnClickListener() {
         }
     };
 ```
+
+![gif](device-2016-01-04-140728.gif)
