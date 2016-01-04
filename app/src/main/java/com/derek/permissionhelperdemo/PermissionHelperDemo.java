@@ -22,6 +22,7 @@ import com.derek.permissionhelper.PermissionHelper;
 import com.derek.permissionhelper.PermissionHelper.RLog;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -145,9 +146,12 @@ public class PermissionHelperDemo extends AppCompatActivity implements ActivityC
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        synchronized (lock) {
-            for (ActivityCompat.OnRequestPermissionsResultCallback callback : onRequestPermissionsResultCallbackList) {
-                if (callback != null) callback.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        Iterator<ActivityCompat.OnRequestPermissionsResultCallback> iter = this.onRequestPermissionsResultCallbackList.iterator();
+        while (iter.hasNext()) {
+            ActivityCompat.OnRequestPermissionsResultCallback callback = iter.next();
+            if (callback != null) {
+                callback.onRequestPermissionsResult(requestCode, permissions, grantResults);
             }
         }
         //PermissionHelper.cancelAll();
