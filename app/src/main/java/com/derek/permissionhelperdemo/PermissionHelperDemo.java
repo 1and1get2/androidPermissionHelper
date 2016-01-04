@@ -81,7 +81,9 @@ public class PermissionHelperDemo extends AppCompatActivity implements ActivityC
                             PermissionHelper.Permissions.newSubPermissions(Manifest.permission.CALL_PHONE, false),
                             PermissionHelper.Permissions.newSubPermissions(Manifest.permission.BODY_SENSORS, false),
                             PermissionHelper.Permissions.newSubPermissions(Manifest.permission.READ_SMS, false))
-            ).setPermissionResultCallBack(new PermissionHelper.PermissionResultCallBack() {
+            )
+            // the rest of this method is optional
+            .setPermissionResultCallBack(new PermissionHelper.PermissionResultCallBack() {
                 @Override
                 public void onUpdate(SimpleArrayMap result) {
                     PermissionHelper.RLog.i(TAG, "onUpdate:", result.size());
